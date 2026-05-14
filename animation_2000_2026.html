@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>رحلة الزمن — 2000 ✦ 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Georgia', serif;
+      overflow: hidden;
+    }
+
+    /* ── Stage ── */
+    .stage {
+      position: relative;
+      width: min(450px, 100vw);
+      aspect-ratio: 9 / 16;
+      overflow: hidden;
+      border-radius: 18px;
+      box-shadow: 0 0 80px rgba(180,140,80,.35);
+    }
+
+    /* ── Background image with Ken-Burns zoom ── */
+    .bg {
+      position: absolute;
+      inset: 0;
+      background:
+        url('https://github.com/user-attachments/assets/280b2a3d-6500-4fe9-aba1-672fd204bbe5')
+        center / cover no-repeat;
+      transform-origin: center center;
+      animation: kenBurns 22s ease-in-out infinite alternate;
+      filter: brightness(.92) saturate(1.1);
+    }
+
+    @keyframes kenBurns {
+      0%   { transform: scale(1)    translate(0,    0); }
+      25%  { transform: scale(1.06) translate(-1%, -1%); }
+      50%  { transform: scale(1.10) translate( 1%, -2%); }
+      75%  { transform: scale(1.07) translate(-1%,  1%); }
+      100% { transform: scale(1.04) translate( 1%,  0); }
+    }
+
+    /* ── Cinematic dark overlay ── */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.7) 100%),
+        linear-gradient(to bottom, rgba(0,0,0,.35) 0%, transparent 20%, transparent 75%, rgba(0,0,0,.65) 100%);
+      pointer-events: none;
+    }
+
+    /* ── Golden divider line ── */
+    .divider {
+      position: absolute;
+      top: 8%;
+      bottom: 8%;
+      left: 50%;
+      width: 1.5px;
+      background: linear-gradient(to bottom,
+        transparent 0%, rgba(210,175,100,.0) 5%,
+        rgba(210,175,100,.9) 30%, rgba(210,175,100,.9) 70%,
+        rgba(210,175,100,.0) 95%, transparent 100%);
+      transform: translateX(-50%) scaleY(0);
+      transform-origin: top center;
+      animation: drawLine 1.2s 0.8s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    @keyframes drawLine {
+      to { transform: translateX(-50%) scaleY(1); }
+    }
+
+    /* ── Year labels ── */
+    .year {
+      position: absolute;
+      top: 6%;
+      font-size: clamp(1.6rem, 7vw, 2.4rem);
+      letter-spacing: .12em;
+      color: #f0e8d5;
+      text-shadow: 0 2px 14px rgba(0,0,0,.8);
+      opacity: 0;
+      animation: fadeUp .9s ease forwards;
+    }
+    .year-left  { left: 8%;  animation-delay: 1.4s; }
+    .year-right { right: 8%; animation-delay: 1.8s; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(14px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    /* ── Particle sparks ── */
+    .sparks {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .spark {
+      position: absolute;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: rgba(220,190,110,.9);
+      animation: floatSpark var(--d) var(--delay) ease-in-out infinite;
+    }
+    @keyframes floatSpark {
+      0%,100% { opacity:0; transform: translate(0,0) scale(.6); }
+      40%      { opacity:1; }
+      100%     { opacity:0; transform: translate(var(--tx), var(--ty)) scale(1.4); }
+    }
+
+    /* ── Bottom text area ── */
+    .caption {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 88%;
+      text-align: center;
+    }
+    .caption p {
+      color: #e8dcc8;
+      text-shadow: 0 1px 10px rgba(0,0,0,.9);
+      line-height: 1.55;
+      opacity: 0;
+    }
+    .caption .line1 {
+      font-size: clamp(.85rem, 3.5vw, 1.1rem);
+      letter-spacing: .06em;
+      animation: fadeUp .9s 2.6s ease forwards;
+    }
+    .caption .line2 {
+      margin-top: .45em;
+      font-size: clamp(1rem, 4.2vw, 1.35rem);
+      font-style: italic;
+      color: #d4b870;
+      animation: fadeUp .9s 3.2s ease forwards;
+    }
+    .caption .line3 {
+      margin-top: .9em;
+      font-size: clamp(.72rem, 3vw, .92rem);
+      color: rgba(230,220,200,.6);
+      letter-spacing: .08em;
+      animation: fadeUp .9s 3.8s ease forwards;
+    }
+
+    /* ── Star icon ── */
+    .star {
+      position: absolute;
+      bottom: 3.5%;
+      right: 5%;
+      font-size: 1.3rem;
+      color: rgba(220,190,110,.8);
+      opacity: 0;
+      animation: fadeUp .8s 4.2s ease forwards, pulse 2.8s 5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1);   opacity:.8; }
+      50%      { transform: scale(1.3); opacity:1; }
+    }
+
+    /* ── Shimmer across image ── */
+    .shimmer {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255,255,255,.06) 50%,
+        transparent 70%
+      );
+      background-size: 200% 100%;
+      animation: shimmerMove 5s 1.5s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes shimmerMove {
+      0%   { background-position: -100% 0; }
+      100% { background-position:  300% 0; }
+    }
+
+    /* ── Replay button ── */
+    .replay {
+      position: absolute;
+      top: 4%;
+      right: 4%;
+      background: rgba(0,0,0,.45);
+      border: 1px solid rgba(210,175,100,.5);
+      color: #d4b870;
+      font-size: .7rem;
+      letter-spacing: .1em;
+      padding: .35em .7em;
+      border-radius: 50px;
+      cursor: pointer;
+      opacity: 0;
+      animation: fadeUp .7s 5s ease forwards;
+      transition: background .2s;
+    }
+    .replay:hover { background: rgba(210,175,100,.25); }
+  </style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <div class="bg" id="bg"></div>
+  <div class="shimmer"></div>
+  <div class="vignette"></div>
+  <div class="divider"></div>
+
+  <span class="year year-left">2000</span>
+  <span class="year year-right">2026</span>
+
+  <!-- Floating particles -->
+  <div class="sparks" id="sparks"></div>
+
+  <div class="caption">
+    <p class="line1">الزمن لا يغيّر الملامح فقط</p>
+    <p class="line2">بل يصنع الحكاية</p>
+    <p class="line3">✦ &nbsp; من كان طفلاً يحلم، صار رجلاً يُحقّق &nbsp; ✦</p>
+  </div>
+
+  <span class="star">✦</span>
+  <button class="replay" onclick="replay()">↺ أعِد</button>
+
+</div>
+
+<script>
+  /* ── Generate random sparks ── */
+  const sparksEl = document.getElementById('sparks');
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const x = Math.random() * 100, y = Math.random() * 100;
+    const tx = (Math.random() - .5) * 60, ty = -(20 + Math.random() * 60);
+    s.style.cssText = `
+      left:${x}%; top:${y}%;
+      --tx:${tx}px; --ty:${ty}px;
+      --d:${3 + Math.random() * 5}s;
+      --delay:${Math.random() * 6}s;
+    `;
+    sparksEl.appendChild(s);
+  }
+
+  /* ── Replay: restart all animations ── */
+  function replay() {
+    const stage = document.getElementById('stage');
+    stage.style.animation = 'none';
+    // Clone and replace to restart CSS animations
+    const clone = stage.cloneNode(true);
+    stage.replaceWith(clone);
+    clone.querySelector('.replay').onclick = replay;
+    // Re-attach spark generator
+    const sp = clone.querySelector('#sparks');
+    sp.innerHTML = '';
+    for (let i = 0; i < 28; i++) {
+      const s = document.createElement('div');
+      s.className = 'spark';
+      const x = Math.random() * 100, y = Math.random() * 100;
+      const tx = (Math.random() - .5) * 60, ty = -(20 + Math.random() * 60);
+      s.style.cssText = `
+        left:${x}%; top:${y}%;
+        --tx:${tx}px; --ty:${ty}px;
+        --d:${3 + Math.random() * 5}s;
+        --delay:${Math.random() * 6}s;
+      `;
+      sp.appendChild(s);
+    }
+  }
+</script>
+
+</body>
+</html>
