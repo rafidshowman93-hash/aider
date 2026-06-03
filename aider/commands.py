@@ -1679,6 +1679,127 @@ Just show me the edits I need to make.
         except Exception as e:
             self.io.tool_error(f"An unexpected error occurred while copying to clipboard: {str(e)}")
 
+    def cmd_chronicle(self, args):
+        "Review session history and show personalized usage tips. Use: /chronicle tips"
+
+        subcommand = args.strip().lower()
+        if subcommand != "tips":
+            self.io.tool_output("Usage: /chronicle tips")
+            return
+
+        history = self.io.get_input_history()
+        if not history:
+            self.io.tool_output(
+                "No session history found. Start using aider and run /chronicle tips again!"
+            )
+            return
+
+        # Tally command usage and collect plain prompts
+        command_counts = {}
+        plain_prompts = []
+        for entry in history:
+            entry = entry.strip()
+            if not entry:
+                continue
+            if entry.startswith("/"):
+                cmd = entry.split()[0].lstrip("/").lower()
+                command_counts[cmd] = command_counts.get(cmd, 0) + 1
+            elif not entry.startswith("!"):
+                plain_prompts.append(entry)
+
+        tips = []
+
+        total_interactions = len(history)
+
+        # Tip: /add files before coding
+        add_count = command_counts.get("add", 0)
+        if add_count == 0 and plain_prompts:
+            tips.append(
+                "Use /add to explicitly add relevant files before asking for changes. "
+                "This gives aider better context and produces more accurate edits."
+            )
+
+        # Tip: frequent /undo suggests over-corrections
+        undo_count = command_counts.get("undo", 0)
+        if undo_count >= 3:
+            tips.append(
+                f"You've used /undo {undo_count} times. Try writing more specific prompts "
+                "to reduce the need for corrections — include the exact behavior you want "
+                "and any constraints upfront."
+            )
+
+        # Tip: frequent /clear suggests long tangled conversations
+        clear_count = command_counts.get("clear", 0)
+        if clear_count >= 3:
+            tips.append(
+                f"You've used /clear {clear_count} times. Consider starting a fresh session "
+                "for each distinct task to keep context focused and costs down."
+            )
+
+        # Tip: never committed
+        commit_count = command_counts.get("commit", 0)
+        if commit_count == 0 and total_interactions >= 10:
+            tips.append(
+                "You haven't used /commit manually. Aider auto-commits after edits, but "
+                "running /commit yourself lets you group related changes with a custom message."
+            )
+
+        # Tip: never used /ask mode
+        ask_count = command_counts.get("ask", 0)
+        if ask_count == 0 and total_interactions >= 5:
+            tips.append(
+                "Try /ask for exploratory questions about your codebase without making edits. "
+                "It's great for understanding code before requesting changes."
+            )
+
+        # Tip: never used /architect
+        architect_count = command_counts.get("architect", 0)
+        if architect_count == 0 and total_interactions >= 10:
+            tips.append(
+                "For large or complex changes, try /architect to have a high-level model plan "
+                "the work before a more focused model implements it."
+            )
+
+        # Tip: no /read-only usage
+        read_only_count = command_counts.get("read-only", 0) + command_counts.get("read_only", 0)
+        if read_only_count == 0 and total_interactions >= 5:
+            tips.append(
+                "Use /read-only to give aider reference files (e.g. docs, configs, tests) "
+                "without allowing it to edit them. This improves context without risking "
+                "unwanted modifications."
+            )
+
+        # Tip: frequent /drop — files may not be needed
+        drop_count = command_counts.get("drop", 0)
+        if drop_count >= 5:
+            tips.append(
+                f"You've used /drop {drop_count} times. Keep your chat context lean by only "
+                "adding files directly relevant to the current task."
+            )
+
+        # Tip: heavy shell usage
+        shell_count = sum(
+            1 for entry in history if entry.strip().startswith("!")
+        )
+        if shell_count >= 5:
+            tips.append(
+                f"You've run {shell_count} shell commands via !cmd. "
+                "Consider using /run or /test to integrate command output directly "
+                "into the chat so aider can act on errors automatically."
+            )
+
+        if not tips:
+            self.io.tool_output(
+                "Your usage looks great! Keep exploring aider's commands with /help."
+            )
+            return
+
+        self.io.tool_output(
+            f"Personalized tips based on {total_interactions} history entries:\n"
+        )
+        for i, tip in enumerate(tips, 1):
+            self.io.tool_output(f"{i}. {tip}\n")
+
 
 def expand_subdir(file_path):
     if file_path.is_file():

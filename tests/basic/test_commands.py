@@ -2224,3 +2224,52 @@ class TestCommands(TestCase):
             )
             self.assertEqual(new_coder.done_messages, [{"role": "user", "content": "d1"}])
             self.assertEqual(new_coder.cur_messages, [{"role": "user", "content": "c1"}])
+
+    def test_cmd_chronicle_tips_no_history(self):
+        io = InputOutput(pretty=False, fancy_input=False, yes=True)
+        coder = Coder.create(self.GPT35, None, io)
+        commands = Commands(io, coder)
+
+        with mock.patch.object(io, "get_input_history", return_value=[]):
+            with mock.patch.object(io, "tool_output") as mock_output:
+                commands.cmd_chronicle("tips")
+                output_calls = " ".join(str(c) for c in mock_output.call_args_list)
+                self.assertIn("No session history", output_calls)
+
+    def test_cmd_chronicle_tips_with_history(self):
+        io = InputOutput(pretty=False, fancy_input=False, yes=True)
+        coder = Coder.create(self.GPT35, None, io)
+        commands = Commands(io, coder)
+
+        history = [
+            "fix the bug in main.py",
+            "add more tests",
+            "/undo",
+            "/undo",
+            "/undo",
+            "/clear",
+            "/clear",
+            "/clear",
+            "explain the code",
+            "refactor utils",
+        ]
+
+        with mock.patch.object(io, "get_input_history", return_value=history):
+            with mock.patch.object(io, "tool_output") as mock_output:
+                commands.cmd_chronicle("tips")
+                all_output = " ".join(str(c) for c in mock_output.call_args_list)
+                # undo tip should fire for >= 3 undos
+                self.assertIn("undo", all_output.lower())
+                # clear tip should fire for >= 3 clears
+                self.assertIn("clear", all_output.lower())
+
+    def test_cmd_chronicle_invalid_subcommand(self):
+        io = InputOutput(pretty=False, fancy_input=False, yes=True)
+        coder = Coder.create(self.GPT35, None, io)
+        commands = Commands(io, coder)
+
+        with mock.patch.object(io, "tool_output") as mock_output:
+            commands.cmd_chronicle("unknown")
+            output_calls = " ".join(str(c) for c in mock_output.call_args_list)
+            self.assertIn("Usage", output_calls)
+
