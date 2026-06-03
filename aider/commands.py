@@ -1761,7 +1761,7 @@ Just show me the edits I need to make.
             )
 
         # Tip: no /read-only usage
-        read_only_count = command_counts.get("read-only", 0) + command_counts.get("read_only", 0)
+        read_only_count = command_counts.get("read-only", 0)
         if read_only_count == 0 and total_interactions >= 5:
             tips.append(
                 "Use /read-only to give aider reference files (e.g. docs, configs, tests) "
