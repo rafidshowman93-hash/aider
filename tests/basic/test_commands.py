@@ -2224,3 +2224,62 @@ class TestCommands(TestCase):
             )
             self.assertEqual(new_coder.done_messages, [{"role": "user", "content": "d1"}])
             self.assertEqual(new_coder.cur_messages, [{"role": "user", "content": "c1"}])
+
+    def test_cmd_chronicle_no_subcommand(self):
+        """Test that /chronicle without 'tips' prints usage info."""
+        io = InputOutput(pretty=False, fancy_input=False, yes=True)
+        coder = Coder.create(self.GPT35, None, io)
+        commands = Commands(io, coder)
+
+        with mock.patch.object(io, "tool_output") as mock_output:
+            commands.cmd_chronicle("")
+            # Should print usage information
+            calls = [str(c) for c in mock_output.call_args_list]
+            self.assertTrue(any("Usage" in c or "tips" in c for c in calls))
+
+    def test_cmd_chronicle_tips_no_history(self):
+        """Test /chronicle tips when there is no session history."""
+        io = InputOutput(pretty=False, fancy_input=False, yes=True)
+        coder = Coder.create(self.GPT35, None, io)
+        commands = Commands(io, coder)
+
+        # Ensure no history
+        coder.done_messages = []
+        coder.cur_messages = []
+        io.input_history_file = None
+
+        with mock.patch.object(io, "tool_output") as mock_output:
+            commands.cmd_chronicle("tips")
+            calls = [str(c) for c in mock_output.call_args_list]
+            self.assertTrue(any("No session history" in c for c in calls))
+
+    def test_cmd_chronicle_tips_with_history(self):
+        """Test /chronicle tips calls the LLM with usage pattern summary."""
+        io = InputOutput(pretty=False, fancy_input=False, yes=True)
+        coder = Coder.create(self.GPT35, None, io)
+        commands = Commands(io, coder)
+
+        # Populate session messages
+        coder.done_messages = [
+            {"role": "user", "content": "/add foo.py"},
+            {"role": "assistant", "content": "Ok."},
+            {"role": "user", "content": "Refactor the main function"},
+        ]
+        coder.cur_messages = []
+        io.input_history_file = None
+
+        with mock.patch.object(
+            coder.main_model, "simple_send_with_retries", return_value="1. Use /undo to revert."
+        ) as mock_send:
+            with mock.patch.object(io, "tool_output") as mock_output:
+                commands.cmd_chronicle("tips")
+
+            # Verify LLM was called
+            self.assertTrue(mock_send.called)
+            messages_arg = mock_send.call_args[0][0]
+            self.assertEqual(len(messages_arg), 1)
+            self.assertIn("usage", messages_arg[0]["content"].lower())
+
+            # Verify tip output was displayed
+            calls = [str(c) for c in mock_output.call_args_list]
+            self.assertTrue(any("Use /undo" in c for c in calls))
