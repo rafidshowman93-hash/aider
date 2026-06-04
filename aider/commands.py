@@ -1697,8 +1697,8 @@ Just show me the edits I need to make.
         # Gather messages from the current session
         session_messages = self.coder.done_messages + self.coder.cur_messages
         session_user_msgs = [
-            m["content"] for m in session_messages if m.get("role") == "user"
-            and isinstance(m.get("content"), str)
+            m["content"] for m in session_messages
+            if m.get("role") == "user" and isinstance(m.get("content"), str)
         ]
 
         if not input_history and not session_user_msgs:
@@ -1712,13 +1712,15 @@ Just show me the edits I need to make.
 
         # Count command frequencies
         from collections import Counter
+        MAX_SAMPLE_LENGTH = 200
         command_counts = Counter()
         non_command_count = 0
         for inp in all_inputs:
             inp_stripped = inp.strip()
             if inp_stripped.startswith("/"):
                 # Extract the command name (first word)
-                cmd_word = inp_stripped.split()[0] if inp_stripped.split() else inp_stripped
+                parts = inp_stripped.split()
+                cmd_word = parts[0] if parts else inp_stripped
                 command_counts[cmd_word] += 1
             elif inp_stripped.startswith("!"):
                 command_counts["!<shell>"] += 1
@@ -1738,7 +1740,7 @@ Just show me the edits I need to make.
         recent_samples = all_inputs[-20:]
         truncated_samples = []
         for s in recent_samples:
-            truncated_samples.append(s[:200] + "..." if len(s) > 200 else s)
+            truncated_samples.append(s[:MAX_SAMPLE_LENGTH] + "..." if len(s) > MAX_SAMPLE_LENGTH else s)
 
         usage_summary = "\n".join(summary_lines)
         recent_text = "\n---\n".join(truncated_samples)
