@@ -1679,6 +1679,98 @@ Just show me the edits I need to make.
         except Exception as e:
             self.io.tool_error(f"An unexpected error occurred while copying to clipboard: {str(e)}")
 
+    def cmd_chronicle(self, args):
+        "Analyze your session history and provide personalized usage tips. Use: /chronicle tips"
+
+        subcmd = args.strip().lower()
+
+        if subcmd != "tips":
+            self.io.tool_output("Usage: /chronicle tips")
+            self.io.tool_output(
+                "  tips  - Analyze your session history and recommend personalized tips"
+            )
+            return
+
+        # Gather input history (past user prompts / commands across sessions)
+        input_history = self.io.get_input_history()
+
+        # Gather messages from the current session
+        session_messages = self.coder.done_messages + self.coder.cur_messages
+        session_user_msgs = [
+            m["content"] for m in session_messages if m.get("role") == "user"
+            and isinstance(m.get("content"), str)
+        ]
+
+        if not input_history and not session_user_msgs:
+            self.io.tool_output(
+                "No session history found. Use aider for a while and then try /chronicle tips."
+            )
+            return
+
+        # Build a summary of usage patterns for the LLM
+        all_inputs = list(input_history) + session_user_msgs
+
+        # Count command frequencies
+        from collections import Counter
+        command_counts = Counter()
+        non_command_count = 0
+        for inp in all_inputs:
+            inp_stripped = inp.strip()
+            if inp_stripped.startswith("/"):
+                # Extract the command name (first word)
+                cmd_word = inp_stripped.split()[0] if inp_stripped.split() else inp_stripped
+                command_counts[cmd_word] += 1
+            elif inp_stripped.startswith("!"):
+                command_counts["!<shell>"] += 1
+            else:
+                non_command_count += 1
+
+        # Build the usage summary text
+        summary_lines = []
+        summary_lines.append(f"Total interactions: {len(all_inputs)}")
+        summary_lines.append(f"Free-form prompts (non-command): {non_command_count}")
+        if command_counts:
+            summary_lines.append("Command usage counts:")
+            for cmd, count in command_counts.most_common():
+                summary_lines.append(f"  {cmd}: {count}")
+
+        # Include a sample of recent prompts (last 20, truncated)
+        recent_samples = all_inputs[-20:]
+        truncated_samples = []
+        for s in recent_samples:
+            truncated_samples.append(s[:200] + "..." if len(s) > 200 else s)
+
+        usage_summary = "\n".join(summary_lines)
+        recent_text = "\n---\n".join(truncated_samples)
+
+        prompt = f"""You are an expert aider assistant. Below is a summary of a user's aider session history and usage patterns. Analyze their patterns and provide 3-5 concise, personalized, actionable tips to help them use aider more effectively. Focus on features they may be underusing, common pitfalls to avoid, or workflow improvements based on what you see.
+
+## Usage Summary
+{usage_summary}
+
+## Recent Prompts (sample)
+{recent_text}
+
+Respond with a numbered list of personalized tips. Be specific and practical. Reference the actual patterns you observed (e.g. specific commands they use a lot or haven't tried).
+"""
+
+        messages = [
+            {"role": "user", "content": prompt},
+        ]
+
+        self.io.tool_output("Analyzing your session history...")
+        try:
+            result = self.coder.main_model.simple_send_with_retries(messages)
+        except Exception as err:
+            self.io.tool_error(f"Unable to generate tips: {err}")
+            return
+
+        if result:
+            self.io.tool_output("\n# Personalized Tips for Your Aider Usage\n")
+            self.io.tool_output(result)
+        else:
+            self.io.tool_error("Unable to generate tips at this time.")
+
 
 def expand_subdir(file_path):
     if file_path.is_file():
